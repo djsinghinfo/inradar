@@ -89,7 +89,7 @@ Uninstall does not revert the server hostname.
 
 
 ## get telegram chat id
-- https://api.telegram.org/bot<YourBOTToken>/getUpdates
+- https://api.telegram.org/bot{YourBOTToken}/getUpdates
 - if you want to send message in group using bot
 - first assign bot as group admin and send any simple message in group
 - get group chat id from above give url, goup chat id start with (-)
