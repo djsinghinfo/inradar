@@ -1,6 +1,6 @@
-# InRadar (Ubuntu 24.04)
+# InRadar (systemd-based Linux)
 
-Root-owned systemd service that sends Telegram alerts for authentication events found in Ubuntu's system journal and configured FTP log files. It never reads, stores, or sends passwords.
+Root-owned systemd service that sends Telegram alerts for authentication events found in the system journal and configured FTP log files. It never reads, stores, or sends passwords. The installer is distribution-version agnostic and is intended for systemd-based Linux distributions with Python 3.6+, `journalctl`, and `tail` (including supported Ubuntu and Debian releases). It is not compatible with non-systemd systems, and does not guarantee every Linux distribution or authentication stack works without configuration.
 
 ## What it can report
 
@@ -11,6 +11,10 @@ Root-owned systemd service that sends Telegram alerts for authentication events 
 - Monitor startup and changed boot ID (reboot) notifications.
 
 **Coverage is log-source dependent.** FTP/FTPS daemons vary in log format and location. Verify the actual daemon and test a failed and successful login on the deployed server. This is not a universal audit of every login mechanism, database, web panel, container, or application. A local systemd service shutdown cannot reliably notify Telegram after it has stopped; use remote log collection/heartbeats for tamper detection.
+
+## Compatibility
+
+The installer no longer hard-codes Ubuntu 24.04. It checks for systemd, `journalctl`, Python 3.8 or newer, and `tail`. Authentication journal fields and FTP/FTPS daemon log locations vary by distribution and daemon; validate a failed and successful login for each enabled service before relying on alerts. On minimal systems, install/enable systemd-journald and ensure logs are persistent/accessible. This is broad Linux compatibility, not a claim that every OS/version or every login mechanism is automatically covered.
 
 ## Install from a Git checkout
 
