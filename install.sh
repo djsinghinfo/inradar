@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-# InRadar service installer for Ubuntu 24.04.
+# InRadar service installer for systemd-based Linux distributions.
 # Usage: sudo ./install.sh [--hostname inradar] [--skip-hostname]
 
 if [[ $EUID -ne 0 ]]; then echo "Run with sudo: sudo $0" >&2; exit 1; fi
 if [[ ! -r /etc/os-release ]]; then echo "Cannot identify operating system." >&2; exit 1; fi
 . /etc/os-release
-if [[ "${ID:-}" != ubuntu || "${VERSION_ID:-}" != "24.04" ]]; then
-  echo "This installer targets Ubuntu 24.04; detected ${PRETTY_NAME:-unknown}." >&2
-  exit 1
-fi
+# Distribution/version are informational: this installer supports systemd-based Linux
+# with Python 3.6+, systemd-journald, journalctl and GNU tail. Log formats and FTP
+# daemon paths still vary by distribution and must be validated on the target host.
+OS_NAME="${PRETTY_NAME:-${ID:-Linux} ${VERSION_ID:-}}"
+echo "Detected OS: $OS_NAME"
 
 SET_HOSTNAME=1
 NEW_HOSTNAME="inradar"
@@ -23,10 +24,14 @@ while (($#)); do
   esac
 done
 [[ "$NEW_HOSTNAME" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]{0,62}$ ]] || { echo "Invalid hostname: $NEW_HOSTNAME" >&2; exit 2; }
-command -v systemctl >/dev/null || { echo "systemd is required." >&2; exit 1; }
-command -v journalctl >/dev/null || { echo "journalctl is required." >&2; exit 1; }
+command -v systemctl >/dev/null || { echo "systemd is required; non-systemd systems are not supported." >&2; exit 1; }
+command -v journalctl >/dev/null || { echo "journalctl is required (install/enable systemd-journald)." >&2; exit 1; }
 command -v python3 >/dev/null || { echo "Python 3 is required." >&2; exit 1; }
-command -v tail >/dev/null || { echo "GNU tail is required." >&2; exit 1; }
+command -v tail >/dev/null || { echo "tail is required." >&2; exit 1; }
+PY_VERSION="$(python3 -c 'import sys; print("%d.%d" % sys.version_info[:2])')"
+python3 -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 6) else 1)' || {
+  echo "Python 3.6 or newer is required; found Python $PY_VERSION." >&2; exit 1;
+}
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 [[ -r "$SCRIPT_DIR/inradar.py" && -r "$SCRIPT_DIR/inradar.service" ]] || { echo "Run install.sh from the repository directory; required files are missing." >&2; exit 1; }
@@ -97,6 +102,7 @@ else
 fi
 
 echo
+echo "Platform:  $OS_NAME (systemd-based Linux)"
 echo "Installed: inradar.service"
 echo "Status:    systemctl status inradar.service"
 echo "Logs:      journalctl -u inradar.service -f"
