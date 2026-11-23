@@ -79,15 +79,44 @@ def telegram(message):
         return False
 
 
+# def send_event(status, username, ip, method, reason="", fingerprint="", source=""):
+#     title = "SUCCESS LOGIN" if status == "SUCCESS" else "FAILED LOGIN ATTEMPT"
+#     lines = [f"[{title}]", f"Server: {hostname()}", f"Username: {clean(username)}", f"Source IP: {clean(ip)}", f"Method: {clean(method)}", f"Time: {now_text()}"]
+#     if fingerprint:
+#         lines.append(f"SSH key fingerprint: {clean(fingerprint)}")
+#     if reason:
+#         lines.append(f"Details: {clean(reason)}")
+#     if source:
+#         lines.append(f"Log source: {clean(source)}")
+#     telegram("\n".join(lines))
 def send_event(status, username, ip, method, reason="", fingerprint="", source=""):
-    title = "SUCCESS LOGIN" if status == "SUCCESS" else "FAILED LOGIN ATTEMPT"
-    lines = [f"[{title}]", f"Server: {hostname()}", f"Username: {clean(username)}", f"Source IP: {clean(ip)}", f"Method: {clean(method)}", f"Time: {now_text()}"]
+    success = status.upper() == "SUCCESS"
+
+    title = (
+        "✅ 🟢 SUCCESSFUL LOGIN"
+        if success
+        else "🚨 ❌ FAILED LOGIN ATTEMPT"
+    )
+
+    lines = [
+        title,
+        "",
+        f"🖥️ Server: {hostname()}",
+        f"👤 Username: {clean(username)}",
+        f"🌐 Remote Login IP: {clean(ip)}",
+        f"🔐 Method: {clean(method)}",
+        f"🕒 Time: {now_text()}",
+    ]
+
     if fingerprint:
-        lines.append(f"SSH key fingerprint: {clean(fingerprint)}")
-    if reason:
-        lines.append(f"Details: {clean(reason)}")
+        lines.append(f"🔑 SSH Key Fingerprint: {clean(fingerprint)}")
+
+    if not success:
+        lines.append(f"⚠️ Details: {clean(reason, 'Authentication rejected')}")
+
     if source:
-        lines.append(f"Log source: {clean(source)}")
+        lines.append(f"📋 Log Source: {clean(source)}")
+
     telegram("\n".join(lines))
 
 
