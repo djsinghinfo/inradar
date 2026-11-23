@@ -88,9 +88,23 @@ Uninstall does not revert the server hostname.
 - The script parses known log formats. Validate against the actual OpenSSH, vsftpd, or ProFTPD version before relying on it for incident response.
 
 
-## get telegram chat id
-- https://api.telegram.org/bot{YourBOTToken}/getUpdates
-- if you want to send message in group using bot
-- first assign bot as group admin and send any simple message in group
-- get group chat id from above give url, goup chat id start with (-)
+### Telegram Bot Setup
+
+1. Open [@BotFather](https://t.me/BotFather) on Telegram.
+2. Send `/newbot` and follow the steps to create your bot.
+3. Copy the **Bot Token** provided by BotFather.
+4. Open your Telegram group.
+5. Go to **Group Name → Add Members** and add your bot.
+6. Go to **Group Name → Edit → Administrators → Add Administrator**.
+7. Select your bot, enable the required permissions, and click **Save**.
+8. Send a message in the Telegram group.
+9. Open this URL in your browser, replacing `YOUR_BOT_TOKEN` with your actual bot token:
+
+   ```text
+   https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
+   ```
+
+10. Find `message` → `chat` → `id` in the JSON response. This is your **Telegram Group Chat ID** (usually a negative number).
+
+**Note:** Keep your bot token private. If `getUpdates` returns no messages, check whether a webhook is configured or another process is consuming updates.
 
