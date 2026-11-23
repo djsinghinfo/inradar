@@ -1,10 +1,10 @@
 #!/usr/bin/python3
 """Root-run authentication metadata monitor. Never captures passwords or raw auth lines."""
-from __future__ import annotations
 import datetime as dt
 import json
 import os
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -19,6 +19,9 @@ CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 STATE_DIR = Path("/var/lib/inradar")
 BOOT_FILE = STATE_DIR / "boot-id"
 BOOT_ID_PATH = Path("/proc/sys/kernel/random/boot_id")
+JOURNALCTL = shutil.which("journalctl") or "/usr/bin/journalctl"
+TAIL = shutil.which("tail") or "/usr/bin/tail"
+
 LOG_FILES = [
     ("vsftpd", "/var/log/vsftpd.log"),
     ("proftpd", "/var/log/proftpd/proftpd.log"),
@@ -36,23 +39,23 @@ RE_VSFTPD = re.compile(r"(?:\[([^\]]+)\]\s+)?(OK LOGIN|FAIL LOGIN):\s*Client\s+\
 RE_PROFTPD = re.compile(r"(?:\bUSER\s+([^: ]+):\s*)?(Login successful|Incorrect password|no such user|authentication failed|Login failed)", re.I)
 
 
-def now_text() -> str:
+def now_text():
     return dt.datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")
 
 
-def clean(value, default="unknown") -> str:
+def clean(value, default="unknown"):
     value = str(value or default).replace("\n", " ").replace("\r", " ")
     return value[:250]
 
 
-def hostname() -> str:
+def hostname():
     try:
         return socket.gethostname()
     except Exception:
         return "unknown"
 
 
-def telegram(message: str) -> bool:
+def telegram(message):
     if not TOKEN or not CHAT_ID:
         print("Telegram configuration missing", file=sys.stderr, flush=True)
         return False
@@ -156,7 +159,7 @@ def journal_worker():
     while True:
         proc = None
         try:
-            proc = subprocess.Popen(["/usr/bin/journalctl", "-f", "-n", "0", "-o", "json", "--no-pager"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+            proc = subprocess.Popen([JOURNALCTL, "-f", "-n", "0", "-o", "json", "--no-pager"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True, bufsize=1)
             assert proc.stdout is not None
             for raw in proc.stdout:
                 try:
@@ -177,7 +180,7 @@ def watch_file(label, path):
     while True:
         proc = None
         try:
-            proc = subprocess.Popen(["/usr/bin/tail", "-Fn0", "--retry", "--", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+            proc = subprocess.Popen([TAIL, "-Fn0", "--retry", "--", path], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, universal_newlines=True, bufsize=1)
             assert proc.stdout is not None
             for line in proc.stdout:
                 parse_line(line, label, label, source_override=path)
