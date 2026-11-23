@@ -1,0 +1,32 @@
+[Unit]
+Description=InRadar authentication alerts with Telegram alerts
+Documentation=https://github.com/YOUR_ORG/inradar
+After=network-online.target systemd-journald.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=root
+Group=root
+EnvironmentFile=/etc/inradar/telegram.env
+ExecStart=/usr/local/sbin/inradar.py
+Restart=always
+RestartSec=5
+UMask=0077
+
+# Defense in depth; this is not protection against a hostile root user.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/inradar
+
+[Install]
+WantedBy=multi-user.target
