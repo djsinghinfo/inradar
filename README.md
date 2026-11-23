@@ -21,9 +21,9 @@ The installer no longer hard-codes Ubuntu 24.04. It checks for systemd, `journal
 After pushing this repository to your own Git host:
 
 ```bash
-git clone https://github.com/YOUR_ORG/inradar.git
+git clone https://github.com/djsinghinfo/inradar.git
 cd inradar
-sudo ./install.sh --hostname inradar
+sudo ./install.sh --hostname myProject
 ```
 
 The installer sets the operating-system hostname to `inradar` by default. To install without changing hostname:
@@ -86,3 +86,11 @@ Uninstall does not revert the server hostname.
 - Alerts require network access to `api.telegram.org`. Network outages can cause missed notifications; this implementation does not provide a durable retry queue or guaranteed delivery.
 - Every matching event is sent immediately, as requested. Brute-force attacks may generate many Telegram messages.
 - The script parses known log formats. Validate against the actual OpenSSH, vsftpd, or ProFTPD version before relying on it for incident response.
+
+
+## get telegram chat id
+- https://api.telegram.org/bot<YourBOTToken>/getUpdates
+- if you want to send message in group using bot
+- first assign bot as group admin and send any simple message in group
+- get group chat id from above give url, goup chat id start with (-)
+
