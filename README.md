@@ -1,65 +1,109 @@
-# InRadar (systemd-based Linux)
+# InRadar — Linux Authentication Monitoring
 
-Root-owned systemd service that sends Telegram alerts for authentication events found in the system journal and configured FTP log files. It never reads, stores, or sends passwords. The installer is distribution-version agnostic and is intended for systemd-based Linux distributions with Python 3.6+, `journalctl`, and `tail` (including supported Ubuntu and Debian releases). It is not compatible with non-systemd systems, and does not guarantee every Linux distribution or authentication stack works without configuration.
+InRadar is a root-owned, systemd-based Linux service that monitors authentication events and sends alerts to Telegram. It never reads, stores, or sends passwords.
 
-## What it can report
+## 1. Installation
 
-- SSH/SFTP: `Accepted ...` and `Failed ...` sshd journal events, username, source IP, method, timestamp, hostname, and SSH fingerprint when OpenSSH includes one in the log.
-- PAM failures and some remote PAM session-open events when the service writes those events to the journal with a remote host field.
-- vsftpd `OK LOGIN` / `FAIL LOGIN` records from `/var/log/vsftpd.log`.
-- Some ProFTPD authentication log formats from `/var/log/proftpd/proftpd.log` and `/var/log/proftpd/auth.log`.
-- Monitor startup and changed boot ID (reboot) notifications.
+### Requirements
 
-**Coverage is log-source dependent.** FTP/FTPS daemons vary in log format and location. Verify the actual daemon and test a failed and successful login on the deployed server. This is not a universal audit of every login mechanism, database, web panel, container, or application. A local systemd service shutdown cannot reliably notify Telegram after it has stopped; use remote log collection/heartbeats for tamper detection.
+- A systemd-based Linux distribution.
+- Python 3.8 or newer.
+- `journalctl` and `tail`.
+- Network access to `api.telegram.org`.
+- Root or `sudo` privileges.
 
-## Compatibility
+The installer checks for required dependencies and does not assume a specific Ubuntu version. Authentication log formats and paths may still require distribution-specific configuration.
 
-The installer no longer hard-codes Ubuntu 24.04. It checks for systemd, `journalctl`, Python 3.8 or newer, and `tail`. Authentication journal fields and FTP/FTPS daemon log locations vary by distribution and daemon; validate a failed and successful login for each enabled service before relying on alerts. On minimal systems, install/enable systemd-journald and ensure logs are persistent/accessible. This is broad Linux compatibility, not a claim that every OS/version or every login mechanism is automatically covered.
+### Install from Git
 
-## Install from a Git checkout
-
-After pushing this repository to your own Git host:
+Clone the repository and enter the project directory:
 
 ```bash
 git clone https://github.com/djsinghinfo/inradar.git
 cd inradar
+```
+
+Run the installer:
+
+```bash
 sudo ./install.sh --hostname myProject
 ```
 
-The installer sets the operating-system hostname to `inradar` by default. To install without changing hostname:
+To install without changing the server hostname:
 
 ```bash
 sudo ./install.sh --skip-hostname
 ```
 
-You can specify another hostname with `--hostname NAME`.
+You can specify a different hostname with `--hostname NAME`.
 
-The installer prompts for a Telegram bot token and numeric chat ID on first install. Create the bot with [@BotFather](https://t.me/BotFather) and start a chat with it before installing. Existing config is preserved on re-install.
+The installer prompts for your Telegram bot token and chat ID during the initial installation. Follow the Telegram Bot Setup section below if you need to create these credentials.
 
-## Verify
+Existing Telegram configuration is preserved during reinstallation.
+
+### Verify the Installation
 
 ```bash
 hostnamectl --static
-sudo systemctl status inradar.service
+sudo systemctl status inradar.service --no-pager
 sudo systemctl is-enabled inradar.service
-sudo journalctl -u inradar.service -f
-sudo stat -c '%U:%G %a %n' /usr/local/sbin/inradar.py /etc/inradar/telegram.env /etc/systemd/system/inradar.service
+sudo journalctl -u inradar.service -n 30 --no-pager
 ```
 
-Expected file permissions: monitor `root:root 750`, token file `root:root 600`, unit `root:root 644`.
-
-## Test events
-
-From a separate machine, attempt one failed and one successful SSH login. Observe Telegram and compare against:
+Check file ownership and permissions:
 
 ```bash
-sudo journalctl -u ssh.service --since '10 minutes ago' --no-pager
-sudo journalctl -u inradar.service --since '10 minutes ago' --no-pager
+sudo stat -c '%U:%G %a %n' \
+  /usr/local/sbin/inradar.py \
+  /etc/inradar/telegram.env \
+  /etc/systemd/system/inradar.service
 ```
 
-For FTP/FTPS, use a test account and verify that the daemon emits auth logs to one of the monitored paths or the system journal. Configure the daemon's logging separately if needed. Do not enable verbose protocol logging without checking whether it can expose sensitive session data.
+Expected permissions:
 
-## Change Telegram configuration
+| File | Owner | Permissions |
+|---|---|---|
+| Monitor script | `root:root` | `750` |
+| Telegram configuration | `root:root` | `600` |
+| systemd service | `root:root` | `644` |
+
+## 2. Telegram Bot Setup
+
+### Step 1: Create a Telegram Bot
+
+1. Open [@BotFather](https://t.me/BotFather) on Telegram.
+2. Send `/newbot`.
+3. Follow the instructions to choose a bot name and username.
+4. Copy the bot token provided by BotFather.
+
+**Keep the bot token private.** Anyone who obtains it may be able to control your bot.
+
+### Step 2: Add the Bot to Your Telegram Group
+
+1. Open your Telegram group.
+2. Go to **Group Name → Add Members**.
+3. Add your newly created bot.
+4. If your group configuration requires it, go to **Group Name → Edit → Administrators** and add the bot as an administrator.
+5. Grant only the permissions required for your setup.
+6. Send a message in the group to generate an update.
+
+### Step 3: Find the Group Chat ID
+
+Open the following URL in your browser, replacing `YOUR_BOT_TOKEN` with your actual bot token:
+
+```text
+https://api.telegram.org/botYOUR_BOT_TOKEN/getUpdates
+```
+
+Find the `message` → `chat` → `id` field in the JSON response. This is your chat ID. Group chat IDs are commonly negative numbers.
+
+If `getUpdates` returns no messages, check whether a webhook is configured or another process is consuming updates. Do not share the response publicly because it may contain private chat information.
+
+### Step 4: Configure Telegram
+
+During installation, enter the bot token and numeric chat ID when prompted.
+
+To update the configuration later:
 
 ```bash
 sudoedit /etc/inradar/telegram.env
@@ -68,43 +112,106 @@ sudo chmod 600 /etc/inradar/telegram.env
 sudo systemctl restart inradar.service
 ```
 
-Rotate the bot token with @BotFather if it is exposed. Never commit `telegram.env` to Git.
+The configuration uses these environment variable names:
 
-## Remove
+```bash
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+```
+
+Never commit this configuration file to Git. If the bot token is exposed, revoke or regenerate it using BotFather.
+
+## 3. Supported Monitoring
+
+InRadar monitors authentication events found in the system journal and configured FTP log files.
+
+### SSH/SFTP
+
+- Successful SSH authentication.
+- Failed SSH authentication.
+- Username, remote IP, authentication method, timestamp and hostname.
+- SSH key fingerprint when OpenSSH includes it in the log.
+
+### PAM Authentication
+
+- PAM authentication failures.
+- Some remote PAM session-open events when the logs contain a remote host field.
+
+### FTP/FTPS
+
+- vsftpd `OK LOGIN` and `FAIL LOGIN` records from `/var/log/vsftpd.log`.
+- Some ProFTPD authentication events from:
+  - `/var/log/proftpd/proftpd.log`
+  - `/var/log/proftpd/auth.log`
+
+### Service and Reboot Notifications
+
+- Monitor startup notifications.
+- Server reboot notifications when the boot ID changes.
+
+**Coverage depends on the configured log sources.** This is not a universal audit of every login mechanism, application, database, web panel or container.
+
+## 4. Testing and Troubleshooting
+
+### Follow InRadar Logs
+
+```bash
+sudo journalctl -u inradar.service -f
+```
+
+### Check SSH Authentication Events
+
+From a separate machine, attempt one failed SSH login and one successful SSH login using an authorized account.
+
+Inspect the SSH logs:
+
+```bash
+sudo journalctl -u ssh.service --since '10 minutes ago' --no-pager
+```
+
+Compare them with the InRadar service logs:
+
+```bash
+sudo journalctl -u inradar.service --since '10 minutes ago' --no-pager
+```
+
+### Test FTP/FTPS
+
+Use a test account to attempt one failed and one successful login. Verify that the FTP daemon writes the expected authentication events to a monitored log file or the system journal.
+
+Configure daemon logging separately if necessary. Avoid enabling verbose protocol logging without checking whether it could expose sensitive session data.
+
+## 5. Compatibility
+
+InRadar is designed for systemd-based Linux distributions with Python 3.8 or newer, `journalctl` and `tail`.
+
+It is not compatible with non-systemd systems. Different distributions and authentication stacks may use different journal fields, service names and FTP log paths. Validate successful and failed login detection for every enabled service before relying on the alerts.
+
+On minimal systems, ensure that systemd-journald is installed, enabled and accessible, and configure persistent logging if required.
+
+## 6. Security Model and Limitations
+
+- The monitor script and Telegram configuration are intended to be root-owned.
+- systemd sandboxing provides defense in depth; the monitor requires elevated access to read system authentication logs.
+- InRadar never reads, stores or sends passwords.
+- Alerts require network access to `api.telegram.org`.
+- Network outages may cause missed notifications. This implementation does not guarantee delivery and does not provide a durable retry queue.
+- Brute-force attacks may generate many Telegram messages because matching events are sent immediately.
+- A hostile root user can stop, modify or remove a local root service. `chattr +i` is not a robust defense against root and may complicate legitimate updates.
+- For stronger tamper detection, forward authentication logs to a separate host or managed logging service using credentials unavailable to the monitored server. Monitor remote heartbeats to detect missing events or service interruptions.
+
+## 7. Uninstallation
+
+From the repository directory, run:
 
 ```bash
 sudo ./uninstall.sh
 ```
 
-Uninstall does not revert the server hostname.
+Uninstallation does not revert a hostname change made during installation.
 
-## Security model and limitations
+## 8. Project Notes
 
-- The service and config are root-owned. Ordinary unprivileged users cannot edit them.
-- systemd sandbox options provide defense in depth; the monitor needs root access to read system logs.
-- **A hostile root user can stop, modify, or remove a local root service.** `chattr +i` is not a robust defense against root and can complicate legitimate upgrades. For meaningful tamper detection, forward journald/auth logs to a separate host or managed logging service with credentials not available on this server, and alert on missing heartbeats.
-- Alerts require network access to `api.telegram.org`. Network outages can cause missed notifications; this implementation does not provide a durable retry queue or guaranteed delivery.
-- Every matching event is sent immediately, as requested. Brute-force attacks may generate many Telegram messages.
-- The script parses known log formats. Validate against the actual OpenSSH, vsftpd, or ProFTPD version before relying on it for incident response.
+InRadar parses known authentication log formats. It should be tested against the actual OpenSSH, vsftpd or ProFTPD version before being used for incident response.
 
-
-### Telegram Bot Setup
-
-1. Open [@BotFather](https://t.me/BotFather) on Telegram.
-2. Send `/newbot` and follow the steps to create your bot.
-3. Copy the **Bot Token** provided by BotFather.
-4. Open your Telegram group.
-5. Go to **Group Name → Add Members** and add your bot.
-6. Go to **Group Name → Edit → Administrators → Add Administrator**.
-7. Select your bot, enable the required permissions, and click **Save**.
-8. Send a message in the Telegram group.
-9. Open this URL in your browser, replacing `YOUR_BOT_TOKEN` with your actual bot token:
-
-   ```text
-   https://api.telegram.org/bot[YOUR_BOT_TOKEN]/getUpdates
-   ```
-
-10. Find `message` → `chat` → `id` in the JSON response. This is your **Telegram Group Chat ID** (usually a negative number).
-
-**Note:** Keep your bot token private. If `getUpdates` returns no messages, check whether a webhook is configured or another process is consuming updates.
-
+Repository: [https://github.com/djsinghinfo/inradar](https://github.com/djsinghinfo/inradar)
