@@ -105,7 +105,7 @@ def send_event(status, username, ip, method, reason="", fingerprint="", source="
 
     lines = [
         title,
-        # "",
+        "",
         # f"🖥️ Server: {hostname()}",
         f"👤 Username: {clean(username)}",
         f"🌐 Remote Login IP: {clean(ip)}",
