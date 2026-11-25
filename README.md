@@ -26,13 +26,13 @@ cd inradar
 Run the installer:
 
 ```bash
-sudo ./install.sh --hostname myProject
+sudo bash ./install.sh --hostname myProject
 ```
 
 To install without changing the server hostname:
 
 ```bash
-sudo ./install.sh --skip-hostname
+sudo bash ./install.sh --skip-hostname
 ```
 
 You can specify a different hostname with `--hostname NAME`.
@@ -205,7 +205,7 @@ On minimal systems, ensure that systemd-journald is installed, enabled and acces
 From the repository directory, run:
 
 ```bash
-sudo ./uninstall.sh
+sudo bash ./uninstall.sh
 ```
 
 Uninstallation does not revert a hostname change made during installation.
