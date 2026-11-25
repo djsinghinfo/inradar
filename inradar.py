@@ -109,7 +109,7 @@ def send_event(status, username, ip, method, reason="", fingerprint="", source="
         # "",
         f"👤 Username: <code>{html.escape(clean(username))}</code>",
         #f'🌐 Remote Login IP: <code>{html.escape(clean(ip))}</code>',
-        f'🌐 Remote Login IP: <a href="https://www.ip2location.com/{html.escape(clean(ip), quote=True)}"><code>{html.escape(clean(ip))}</code></a>',
+        f'🌐 Remote Login IP: <a href="https://www.ip2location.com/{html.escape(clean(ip), quote=True)}">{html.escape(clean(ip))}</a>',
         f"🔐 Method: <code>{html.escape(clean(method))}</code>",
         f"🕒 Time: <code>{html.escape(now_text())}</code>",
     ]
