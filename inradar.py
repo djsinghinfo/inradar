@@ -60,7 +60,7 @@ def telegram(message):
         print("Telegram configuration missing", file=sys.stderr, flush=True)
         return False
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    body = urllib.parse.urlencode({"chat_id": CHAT_ID, "text": message, "disable_web_page_preview": "true"}).encode()
+    body = urllib.parse.urlencode({"chat_id": CHAT_ID, "text": message, "parse_mode": "HTML", "disable_web_page_preview": "true"}).encode()
     req = urllib.request.Request(url, data=body, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=12) as response:
@@ -105,22 +105,23 @@ def send_event(status, username, ip, method, reason="", fingerprint="", source="
 
     lines = [
         title,
-        "",
-        # f"🖥️ Server: {hostname()}",
-        f"👤 Username: {clean(username)}",
-        f"🌐 Remote Login IP: {clean(ip)}",
-        f"🔐 Method: {clean(method)}",
-        f"🕒 Time: {now_text()}",
+        # "",
+        # f"🖥️ Server: <code>{hostname()}</code>",
+        f"👤 Username: <code>{clean(username)}</code>",
+        #f"🌐 Remote Login IP: <code>{clean(ip)}</code>",
+        f'🌐 Remote Login IP: <a href="https://www.ip2location.com/{html.escape(clean(ip), quote=True)}"><code>{html.escape(clean(ip))}</code></a>',
+        f"🔐 Method: <code>{clean(method)}</code>",
+        f"🕒 Time: <code>{now_text()}</code>",
     ]
 
     if fingerprint:
-        lines.append(f"🔑 SSH Key Fingerprint: {clean(fingerprint)}")
+        lines.append(f"🔑 SSH Key Fingerprint: <code>{clean(fingerprint)}</code>")
 
     if not success:
-        lines.append(f"⚠️ Details: {clean(reason, 'Authentication rejected')}")
+        lines.append(f"⚠️ Details: <code>{clean(reason, 'Authentication rejected')}</code>")
 
     if source:
-        lines.append(f"📋 Log Source: {clean(source)}")
+        lines.append(f"📋 Log Source: <code>{clean(source)}</code>")
 
     telegram("\n".join(lines))
 
