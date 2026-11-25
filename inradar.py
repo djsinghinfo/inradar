@@ -92,16 +92,21 @@ def telegram(message):
 def send_event(status, username, ip, method, reason="", fingerprint="", source=""):
     success = status.upper() == "SUCCESS"
 
+    # title = (
+    #     "✅ 🟢 SUCCESSFUL LOGIN"
+    #     if success
+    #     else "🚨 ❌ FAILED LOGIN ATTEMPT"
+    # )
     title = (
-        "✅ 🟢 SUCCESSFUL LOGIN"
+        f"✅ 🟢 SUCCESSFUL LOGIN - {hostname()}"
         if success
-        else "🚨 ❌ FAILED LOGIN ATTEMPT"
+        else f"🚨 ❌ FAILED LOGIN ATTEMPT - {hostname()}"
     )
 
     lines = [
         title,
-        "",
-        f"🖥️ Server: {hostname()}",
+        # "",
+        # f"🖥️ Server: {hostname()}",
         f"👤 Username: {clean(username)}",
         f"🌐 Remote Login IP: {clean(ip)}",
         f"🔐 Method: {clean(method)}",
