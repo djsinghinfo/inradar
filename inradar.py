@@ -12,6 +12,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
+import html
 from pathlib import Path
 
 TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
@@ -98,31 +99,36 @@ def send_event(status, username, ip, method, reason="", fingerprint="", source="
     #     else "🚨 ❌ FAILED LOGIN ATTEMPT"
     # )
     title = (
-        f"✅ 🟢 SUCCESSFUL LOGIN - {hostname()}"
+        f"✅ 🟢 <b>SUCCESSFUL LOGIN - {html.escape(hostname())}</b>"
         if success
-        else f"🚨 ❌ FAILED LOGIN ATTEMPT - {hostname()}"
+        else f"🚨 ❌ <b>FAILED LOGIN ATTEMPT - {html.escape(hostname())}</b>"
     )
 
     lines = [
         title,
         # "",
-        # f"🖥️ Server: <code>{hostname()}</code>",
-        f"👤 Username: <code>{clean(username)}</code>",
-        #f"🌐 Remote Login IP: <code>{clean(ip)}</code>",
+        f"👤 Username: <code>{html.escape(clean(username))}</code>",
+        #f'🌐 Remote Login IP: <code>{html.escape(clean(ip))}</code>',
         f'🌐 Remote Login IP: <a href="https://www.ip2location.com/{html.escape(clean(ip), quote=True)}"><code>{html.escape(clean(ip))}</code></a>',
-        f"🔐 Method: <code>{clean(method)}</code>",
-        f"🕒 Time: <code>{now_text()}</code>",
+        f"🔐 Method: <code>{html.escape(clean(method))}</code>",
+        f"🕒 Time: <code>{html.escape(now_text())}</code>",
     ]
-
+    
     if fingerprint:
-        lines.append(f"🔑 SSH Key Fingerprint: <code>{clean(fingerprint)}</code>")
-
+        lines.append(
+            f"🔑 SSH Key Fingerprint: <code>{html.escape(clean(fingerprint))}</code>"
+        )
+    
     if not success:
-        lines.append(f"⚠️ Details: <code>{clean(reason, 'Authentication rejected')}</code>")
-
+        lines.append(
+            f"⚠️ Details: <code>{html.escape(clean(reason, 'Authentication rejected'))}</code>"
+        )
+    
     if source:
-        lines.append(f"📋 Log Source: <code>{clean(source)}</code>")
-
+        lines.append(
+            f"📋 Log Source: <code>{html.escape(clean(source))}</code>"
+        )
+    
     telegram("\n".join(lines))
 
 
