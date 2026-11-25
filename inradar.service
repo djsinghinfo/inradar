@@ -1,6 +1,6 @@
 [Unit]
 Description=InRadar authentication alerts with Telegram alerts
-Documentation=https://github.com/YOUR_ORG/inradar
+Documentation=https://github.com/djsinghinfo/inradar
 After=network-online.target systemd-journald.service
 Wants=network-online.target
 StartLimitIntervalSec=0
